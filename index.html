@@ -1,0 +1,1199 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>לוח בקרת משמרות</title>
+</head>
+<body>
+<div id="root"></div>
+<style id="app-style">
+html, body { margin: 0; padding: 0; background: #12151a; }
+.wrap {
+  --bg: #12151a;
+  --panel: #1b1f26;
+  --panel-alt: #20252d;
+  --border: #2b313b;
+  --text: #edebe6;
+  --muted: #9aa3ad;
+  --amber: #e8a33d;
+  --amber-dim: #6b4e22;
+  --teal: #4fb3a9;
+  --danger: #d9564a;
+  font-family: 'Assistant', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 24px 16px 40px;
+  box-sizing: border-box;
+}
+.wrap * { box-sizing: border-box; }
+.shell { max-width: 720px; margin: 0 auto; }
+.eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--amber);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.title {
+  font-family: 'Suez One', serif;
+  font-size: 30px;
+  margin: 0 0 6px;
+  color: var(--text);
+  text-wrap: balance;
+}
+.date-display {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+.conn-note {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin: -10px 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.conn-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); flex: none; }
+.conn-note.conn-warn .conn-dot { background: var(--danger); }
+.conn-note.conn-warn { color: var(--danger); }
+.console-strip {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.segment {
+  flex: 1;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 8px;
+  text-align: center;
+  cursor: default;
+  transition: border-color 0.2s, background 0.2s;
+}
+.segment.active {
+  border-color: var(--amber);
+  background: linear-gradient(180deg, rgba(232,163,61,0.14), rgba(232,163,61,0.03));
+}
+.segment.done { cursor: pointer; }
+.segment .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border);
+  margin: 0 auto 6px;
+}
+.segment.active .dot, .segment.done .dot { background: var(--amber); }
+.segment .seg-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+.segment.active .seg-label, .segment.done .seg-label { color: var(--text); }
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 22px;
+}
+.panel h2 {
+  font-family: 'Suez One', serif;
+  font-size: 20px;
+  margin: 0 0 16px;
+  font-weight: normal;
+  text-wrap: balance;
+}
+.grid-6 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+@media (min-width: 480px) {
+  .grid-6 { grid-template-columns: repeat(3, 1fr); }
+}
+.choice-btn {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 14px 10px;
+  border-radius: 8px;
+  font-family: 'Assistant', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.choice-btn:hover { border-color: var(--amber); }
+.choice-btn:active { transform: scale(0.98); }
+.choice-btn:focus-visible, .btn-primary:focus-visible, .btn-secondary:focus-visible,
+.icon-btn:focus-visible, .sector-tag:focus-visible, .history-toggle:focus-visible,
+.btn-icon-add:focus-visible, .input:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+.choice-btn.choice-btn-selected {
+  border-color: var(--amber);
+  background: linear-gradient(180deg, rgba(232,163,61,0.14), rgba(232,163,61,0.03));
+}
+.field-row { margin-bottom: 12px; }
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.field-label svg { width: 15px; height: 15px; }
+.input {
+  width: 100%;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 7px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+}
+.input:focus { outline: none; border-color: var(--amber); }
+.input.name-input { font-family: 'Assistant', sans-serif; }
+.input.input-empty { border-color: rgba(217,86,74,0.45); }
+.field-hint {
+  font-size: 12px;
+  color: var(--danger);
+  margin: -4px 0 14px;
+}
+.btn-primary {
+  background: var(--amber);
+  color: #1a1508;
+  border: none;
+  padding: 11px 20px;
+  border-radius: 7px;
+  font-family: 'Assistant', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 11px 18px;
+  border-radius: 7px;
+  font-family: 'Assistant', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn-secondary:hover { border-color: var(--muted); }
+.guard-list { margin: 16px 0; display: flex; flex-direction: column; gap: 8px; }
+.guard-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 10px 12px;
+  gap: 10px;
+}
+.guard-row .g-name { font-weight: 700; font-size: 14px; }
+.guard-row .g-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  gap: 10px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+.icon-btn {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 6px;
+  flex: none;
+  display: flex;
+}
+.report-block {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  color: var(--amber);
+  white-space: pre-wrap;
+  line-height: 1.7;
+  direction: ltr;
+  text-align: left;
+  overflow-x: auto;
+}
+.actions-row { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.history-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: 'Assistant', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  margin: 22px 0 10px;
+  padding: 0;
+}
+.history-toggle svg.chev { transition: transform 0.2s; }
+.history-toggle.open svg.chev { transform: rotate(180deg); }
+.history-item {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.history-item .h-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 4px;
+  gap: 10px;
+}
+.history-item .h-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--teal);
+  color: #0d1f1d;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 50;
+}
+.history-toggle.manage-toggle { margin: 0; }
+.manage-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
+.lock-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: 'Assistant', sans-serif;
+  cursor: pointer;
+  flex: none;
+  white-space: nowrap;
+}
+.lock-btn:hover { border-color: var(--muted); }
+.pin-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 15, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+.pin-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 22px;
+  max-width: 340px;
+  width: 100%;
+}
+.pin-title { font-family: 'Suez One', serif; font-size: 18px; margin-bottom: 8px; }
+.pin-sub { font-size: 13px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+.pin-box .input { margin-bottom: 10px; text-align: center; letter-spacing: 4px; font-size: 18px; }
+.pin-box .actions-row { margin-top: 4px; }
+.manage-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+@media (min-width: 560px) {
+  .manage-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.manage-col { padding: 16px; }
+.manage-col h3 {
+  font-family: 'Suez One', serif;
+  font-size: 15px;
+  font-weight: normal;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+.manage-add-row { display: flex; gap: 6px; margin-bottom: 10px; }
+.manage-add-row .input { flex: 1; font-family: 'Assistant', sans-serif; }
+.btn-icon-add {
+  background: var(--amber);
+  border: none;
+  color: #1a1508;
+  border-radius: 6px;
+  padding: 0 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+.manage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.manage-col-guards { grid-column: 1 / -1; }
+.guard-manage-item {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 10px;
+}
+.guard-manage-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 8px;
+}
+.guard-manage-top .g-name { font-weight: 700; font-size: 14px; }
+.sector-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.sector-tag {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  font-family: 'Assistant', sans-serif;
+  padding: 4px 9px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+.sector-tag.sector-tag-active {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: rgba(232,163,61,0.1);
+}
+.warn-note {
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: 8px;
+}
+</style>
+<script>
+(function () {
+"use strict";
+
+/* ---------- static domain data ---------- */
+var SECTOR_STRUCTURE = [
+  { name: "חיפה" },
+  { name: "ירושלים" },
+  { name: "באר שבע" },
+  { name: "סובב ירושלים", subSectors: ["ביתר עילית", "מודיעין עילית", "בית שמש"] }
+];
+var TOP_SECTORS = SECTOR_STRUCTURE.map(function (s) { return s.name; });
+var SHIFTS = ["בוקר", "ערב", "לילה", "מתואמת", "מוצ\"ש"];
+var STEPS = [
+  { key: "kabat", label: "קב\"ט" },
+  { key: "sector", label: "גזרה" },
+  { key: "shift", label: "משמרת" },
+  { key: "leads", label: "אחראים" },
+  { key: "assign", label: "שיבוץ" },
+  { key: "report", label: "דוח" }
+];
+var CATEGORY_LABELS = {
+  guards: "מאבטחים",
+  vehicles: "רכבים (מספרי רישוי)",
+  radios: "מכשירי קשר",
+  cameras: "מצלמות",
+  briefers: "מתדרכים",
+  commanders: "אחמ\"שים גזרתיים",
+  kabats: "קב\"טים"
+};
+var TAGGED_CATS = ["radios", "cameras", "briefers", "commanders", "kabats"];
+var TAGGED_PLACEHOLDERS = {
+  radios: "הוסף פריט חדש...",
+  cameras: "הוסף פריט חדש...",
+  briefers: "הוסף שם...",
+  commanders: "הוסף שם...",
+  kabats: "הוסף שם..."
+};
+var TAGGED_MONO = { radios: true, cameras: true, briefers: false, commanders: false, kabats: false };
+
+/* ---------- icons (inline, lucide-style strokes) ---------- */
+function icon(paths, extra) {
+  return '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' + (extra || "") + ">" + paths + "</svg>";
+}
+var ICONS = {
+  radio: icon('<path d="M4.9 16.1C1 12.2 1 6.8 4.9 3"/><path d="M7.8 13.2c-2-2-2-5.4 0-7.4"/><circle cx="12" cy="12" r="2"/><path d="M16.2 5.8c2 2 2 5.4 0 7.4"/><path d="M19.1 3c3.9 3.9 3.9 9.2 0 13.1"/><path d="M9.5 13.5 6 21h12l-3.5-7.5"/>'),
+  car: icon('<path d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm14 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0ZM3 17V10l2-5h14l2 5v7"/><path d="M5 10h14"/>'),
+  camera: icon('<path d="M4 8a2 2 0 0 1 2-2h1.2l1-1.6A1 1 0 0 1 9 4h6a1 1 0 0 1 .8.4L16.8 6H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><circle cx="12" cy="13" r="3.2"/>'),
+  users: icon('<circle cx="8.5" cy="8" r="3.2"/><path d="M2 19c0-3.3 2.9-5.8 6.5-5.8S15 15.7 15 19"/><path d="M15.5 5.2a3.2 3.2 0 0 1 0 6.2"/><path d="M17 13.3c2.9.6 5 2.9 5 5.7"/>'),
+  checkCircle: icon('<circle cx="12" cy="12" r="9"/><path d="m8.2 12.3 2.6 2.6 5-5.4"/>'),
+  copy: icon('<rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"/>'),
+  history: icon('<path d="M3 11a9 9 0 1 1 2.7 6.4"/><path d="M3 5v6h6"/><path d="M12 7v5l3.5 2"/>'),
+  plus: icon('<path d="M12 5v14M5 12h14"/>'),
+  trash: icon('<path d="M4 7h16"/><path d="M9 7V4.8c0-.4.4-.8.9-.8h4.2c.5 0 .9.4.9.8V7"/><path d="M6.5 7 7.3 19a1.8 1.8 0 0 0 1.8 1.7h5.8a1.8 1.8 0 0 0 1.8-1.7L17.5 7"/><path d="M10.2 11v6M13.8 11v6"/>'),
+  chevronDown: icon('<path d="M6 9.5 12 15l6-5.5"/>'),
+  settings: icon('<circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.8 1.8 0 0 0 .4 2l.1.1a2.2 2.2 0 1 1-3.1 3.1l-.1-.1a1.8 1.8 0 0 0-2-.4 1.8 1.8 0 0 0-1.1 1.6v.2a2.2 2.2 0 1 1-4.4 0v-.1a1.8 1.8 0 0 0-1.2-1.6 1.8 1.8 0 0 0-2 .4l-.1.1a2.2 2.2 0 1 1-3.1-3.1l.1-.1a1.8 1.8 0 0 0 .4-2 1.8 1.8 0 0 0-1.6-1.1H4a2.2 2.2 0 1 1 0-4.4h.1a1.8 1.8 0 0 0 1.6-1.2 1.8 1.8 0 0 0-.4-2l-.1-.1a2.2 2.2 0 1 1 3.1-3.1l.1.1a1.8 1.8 0 0 0 2 .4H10.5a1.8 1.8 0 0 0 1.1-1.6V4a2.2 2.2 0 1 1 4.4 0v.1a1.8 1.8 0 0 0 1.1 1.6 1.8 1.8 0 0 0 2-.4l.1-.1a2.2 2.2 0 1 1 3.1 3.1l-.1.1a1.8 1.8 0 0 0-.4 2v.1a1.8 1.8 0 0 0 1.6 1.1H20a2.2 2.2 0 1 1 0 4.4h-.1a1.8 1.8 0 0 0-1.6 1.1Z"/>')
+};
+
+/* ---------- helpers ---------- */
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+function tagsMatchSector(itemSectors, currentSector) {
+  return itemSectors.some(function (tag) {
+    return currentSector === tag || currentSector.indexOf(tag + " - ") === 0;
+  });
+}
+function formatDate(ts) {
+  return new Date(ts).toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+function formatTime(ts) {
+  return new Date(ts).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+}
+function buildReportText(record) {
+  var lines = [];
+  lines.push("📋 דוח שיבוץ משמרת");
+  lines.push("🗓️ " + formatDate(record.timestamp) + " | " + formatTime(record.timestamp));
+  lines.push('👤 קב"ט: ' + record.kabat);
+  lines.push("📍 גזרה: " + record.sector);
+  lines.push("🕐 משמרת: " + record.shift);
+  lines.push("🎙️ מתדרך: " + record.briefer);
+  lines.push('🎖️ אחמ"ש גזרתי: ' + record.sectorCommander);
+  lines.push("");
+  lines.push("👮 מאבטחים משובצים:");
+  record.guards.forEach(function (g, i) {
+    lines.push((i + 1) + ". " + g.name + " | רכב: " + g.plate + " | קשר: " + g.radio + " | מצלמה: " + g.camera);
+  });
+  lines.push("");
+  lines.push('סה"כ מאבטחים: ' + record.guards.length);
+  return lines.join("\n");
+}
+function uid() {
+  return Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+}
+
+/* ---------- state ---------- */
+var state = {
+  rosters: { guards: [], vehicles: [], radios: [], cameras: [], briefers: [], commanders: [], kabats: [] },
+  history: []
+};
+
+var ui = {
+  step: 1,
+  selectedKabat: null,
+  sector: null,
+  pendingMain: null,
+  shift: null,
+  briefer: "",
+  sectorCommander: "",
+  guards: [],
+  form: { name: "", plate: "", radio: "", camera: "" },
+  record: null,
+  toast: null,
+  historyOpen: false,
+  manageOpen: false,
+  expandedHistoryTs: null,
+  persistWarning: null,
+  loaded: false,
+  loadError: null,
+  pinPromptOpen: false,
+  pinError: null,
+  pinChecking: false
+};
+
+/* ---------- Supabase (REST) ---------- */
+var SUPA_URL = "https://hcejwcxsqhpiufaakalj.supabase.co";
+var SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZWp3Y3hzcWhwaXVmYWFrYWxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3MTI0NjYsImV4cCI6MjEwNDI4ODQ2Nn0.Zd7DzSSRhjt_DsL2nq_OIbvFV3prmTtKvUjMbEZROQk";
+var ROSTER_CATS = ["guards", "vehicles", "radios", "cameras", "briefers", "commanders", "kabats"];
+var KEY_FIELD = { guards: "name", vehicles: "plate", radios: "value", cameras: "value", briefers: "value", commanders: "value", kabats: "value" };
+var pending = { guards: 0, vehicles: 0, radios: 0, cameras: 0, briefers: 0, commanders: 0, kabats: 0, shifts: 0 };
+
+function supaHeaders(extra) {
+  var h = { "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY, "Content-Type": "application/json" };
+  if (extra) for (var k in extra) h[k] = extra[k];
+  return h;
+}
+function supaGet(table, qs) {
+  return fetch(SUPA_URL + "/rest/v1/" + table + (qs || "?select=*"), { headers: supaHeaders() }).then(function (r) {
+    if (!r.ok) throw new Error("load failed: " + table);
+    return r.json();
+  });
+}
+function supaRpc(fnName, args) {
+  return fetch(SUPA_URL + "/rest/v1/rpc/" + fnName, {
+    method: "POST",
+    headers: supaHeaders({ "Prefer": "return=representation" }),
+    body: JSON.stringify(args)
+  }).then(function (r) {
+    return r.json().catch(function () { return null; }).then(function (body) {
+      if (!r.ok) {
+        var msg = (body && body.message) || (fnName + " failed");
+        var err = new Error(msg);
+        err.isPinError = msg === "invalid pin";
+        throw err;
+      }
+      return body;
+    });
+  });
+}
+function supaVerifyPin(pin) {
+  return fetch(SUPA_URL + "/rest/v1/rpc/verify_edit_pin", {
+    method: "POST",
+    headers: supaHeaders(),
+    body: JSON.stringify({ p_pin: pin })
+  }).then(function (r) {
+    if (!r.ok) throw new Error("verify failed");
+    return r.json();
+  });
+}
+
+/* ---------- edit-pin lock ---------- */
+var EDIT_PIN_STORAGE_KEY = "spb_edit_pin";
+var pendingPinAction = null;
+function getStoredPin() {
+  try { return localStorage.getItem(EDIT_PIN_STORAGE_KEY) || null; } catch (e) { return null; }
+}
+function setStoredPin(pin) {
+  try {
+    if (pin) localStorage.setItem(EDIT_PIN_STORAGE_KEY, pin);
+    else localStorage.removeItem(EDIT_PIN_STORAGE_KEY);
+  } catch (e) {}
+}
+function requirePin(action) {
+  var pin = getStoredPin();
+  if (pin) { action(pin); return; }
+  pendingPinAction = action;
+  ui.pinPromptOpen = true;
+  ui.pinError = null;
+  ui.pinChecking = false;
+  render();
+  setTimeout(function () {
+    var el = document.getElementById("pin-input");
+    if (el) el.focus();
+  }, 30);
+}
+function submitPin() {
+  var typed = getVal("pin-input");
+  if (!typed) return;
+  ui.pinChecking = true;
+  render();
+  supaVerifyPin(typed).then(function (ok) {
+    ui.pinChecking = false;
+    if (ok) {
+      setStoredPin(typed);
+      ui.pinPromptOpen = false;
+      ui.pinError = null;
+      render();
+      var act = pendingPinAction;
+      pendingPinAction = null;
+      if (act) act(typed);
+    } else {
+      ui.pinError = "קוד שגוי — נסה שוב";
+      render();
+    }
+  }).catch(function () {
+    ui.pinChecking = false;
+    ui.pinError = "שגיאת רשת — נסה שוב";
+    render();
+  });
+}
+function cancelPinPrompt() {
+  ui.pinPromptOpen = false;
+  ui.pinError = null;
+  pendingPinAction = null;
+  render();
+}
+function handleWriteError(err, fallbackMsg) {
+  if (err && err.isPinError) {
+    setStoredPin(null);
+    showToast("קוד הגישה שגוי או פג תוקף — יש להזין קוד מחדש");
+  } else {
+    showToast(fallbackMsg);
+  }
+}
+function dbShiftToRecord(row) {
+  return {
+    id: row.id, kabat: row.kabat, sector: row.sector, shift: row.shift, briefer: row.briefer,
+    sectorCommander: row.sector_commander, guards: row.guards, timestamp: new Date(row.created_at).getTime()
+  };
+}
+function isTypingInInput() {
+  var el = document.activeElement;
+  return !!(el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA"));
+}
+function loadAll() {
+  ui.loadError = null;
+  render();
+  var jobs = ROSTER_CATS.map(function (cat) {
+    return supaGet(cat).then(function (rows) { state.rosters[cat] = rows; });
+  });
+  jobs.push(supaGet("shifts", "?select=*&order=created_at.desc&limit=300").then(function (rows) {
+    state.history = rows.map(dbShiftToRecord);
+  }));
+  Promise.all(jobs).then(function () {
+    ui.loaded = true;
+    render();
+  }).catch(function () {
+    ui.loadError = "טעינת הנתונים מהשרת נכשלה — בדוק חיבור לאינטרנט ונסה שוב.";
+    render();
+  });
+}
+function pollRefresh() {
+  if (!ui.loaded) return;
+  var jobs = ROSTER_CATS.filter(function (cat) { return pending[cat] === 0; }).map(function (cat) {
+    return supaGet(cat).then(function (rows) { state.rosters[cat] = rows; }).catch(function () {});
+  });
+  if (pending.shifts === 0) {
+    jobs.push(supaGet("shifts", "?select=*&order=created_at.desc&limit=300").then(function (rows) {
+      state.history = rows.map(dbShiftToRecord);
+    }).catch(function () {}));
+  }
+  Promise.all(jobs).then(function () {
+    if (!isTypingInInput()) render();
+  });
+}
+
+/* ---------- toast ---------- */
+var toastTimer = null;
+function showToast(msg) {
+  ui.toast = msg;
+  render();
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { ui.toast = null; render(); }, 2200);
+}
+
+/* ---------- clipboard ---------- */
+function handleCopy(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { showToast("הועתק ללוח!"); }).catch(function () { fallbackCopy(text); });
+  } else {
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand("copy");
+    showToast("הועתק ללוח!");
+  } catch (e) {}
+  document.body.removeChild(ta);
+}
+
+/* ---------- derived data ---------- */
+function kabatSectors() {
+  var k = state.rosters.kabats.filter(function (x) { return x.value === ui.selectedKabat; })[0];
+  return k ? k.sectors : [];
+}
+function visibleSectorStructure() {
+  var ks = kabatSectors();
+  return SECTOR_STRUCTURE.filter(function (s) { return ks.indexOf(s.name) !== -1; });
+}
+
+/* ---------- roster mutation ---------- */
+function findIdx(arr, key, val) {
+  for (var i = 0; i < arr.length; i++) if (arr[i][key] === val) return i;
+  return -1;
+}
+function rosterAdd(cat, keyVal, extraRow) {
+  var keyField = KEY_FIELD[cat];
+  keyVal = (keyVal || "").trim();
+  if (!keyVal || findIdx(state.rosters[cat], keyField, keyVal) !== -1) return;
+  requirePin(function (pin) {
+    if (findIdx(state.rosters[cat], keyField, keyVal) !== -1) return;
+    var item = { sectors: [] };
+    item[keyField] = keyVal;
+    state.rosters[cat].push(item);
+    render();
+    pending[cat]++;
+    supaRpc("rpc_roster_add", { p_pin: pin, p_table: cat, p_value: keyVal, p_sectors: [] }).then(function (row) {
+      var idx = state.rosters[cat].indexOf(item);
+      if (idx !== -1 && row) state.rosters[cat][idx] = row;
+      render();
+    }).catch(function (err) {
+      state.rosters[cat] = state.rosters[cat].filter(function (x) { return x !== item; });
+      handleWriteError(err, "שגיאה בהוספה — בדוק חיבור לאינטרנט ונסה שוב");
+      render();
+    }).then(function () { pending[cat]--; }, function () { pending[cat]--; });
+  });
+}
+function rosterRemove(cat, keyVal) {
+  var keyField = KEY_FIELD[cat];
+  if (findIdx(state.rosters[cat], keyField, keyVal) === -1) return;
+  requirePin(function (pin) {
+    var idx = findIdx(state.rosters[cat], keyField, keyVal);
+    if (idx === -1) return;
+    var removed = state.rosters[cat][idx];
+    state.rosters[cat].splice(idx, 1);
+    render();
+    pending[cat]++;
+    supaRpc("rpc_roster_remove", { p_pin: pin, p_table: cat, p_value: keyVal }).catch(function (err) {
+      state.rosters[cat].splice(idx, 0, removed);
+      handleWriteError(err, "שגיאה במחיקה — נסה שוב");
+      render();
+    }).then(function () { pending[cat]--; }, function () { pending[cat]--; });
+  });
+}
+function rosterToggleSector(cat, keyVal, sec) {
+  var keyField = KEY_FIELD[cat];
+  requirePin(function (pin) {
+    var item = state.rosters[cat].filter(function (x) { return x[keyField] === keyVal; })[0];
+    if (!item) return;
+    var oldSectors = item.sectors;
+    var has = oldSectors.indexOf(sec) !== -1;
+    var newSectors = has ? oldSectors.filter(function (s) { return s !== sec; }) : oldSectors.concat([sec]);
+    item.sectors = newSectors;
+    render();
+    pending[cat]++;
+    supaRpc("rpc_roster_toggle_sector", { p_pin: pin, p_table: cat, p_value: keyVal, p_sector: sec }).then(function (row) {
+      if (row && row.sectors) item.sectors = row.sectors;
+      render();
+    }).catch(function (err) {
+      item.sectors = oldSectors;
+      handleWriteError(err, "שגיאה בעדכון גזרות — נסה שוב");
+      render();
+    }).then(function () { pending[cat]--; }, function () { pending[cat]--; });
+  });
+}
+function addGuardToRoster(name) { rosterAdd("guards", name); }
+function removeGuardFromRoster(name) { rosterRemove("guards", name); }
+function toggleGuardSector(name, sec) { rosterToggleSector("guards", name, sec); }
+function addVehicleToRoster(plate) {
+  plate = (plate || "").replace(/-/g, "").trim();
+  rosterAdd("vehicles", plate);
+}
+function removeVehicleFromRoster(plate) { rosterRemove("vehicles", plate); }
+function toggleVehicleSector(plate, sec) { rosterToggleSector("vehicles", plate, sec); }
+function addTaggedItem(cat, value) { rosterAdd(cat, value); }
+function removeTaggedItem(cat, value) { rosterRemove(cat, value); }
+function toggleTaggedItemSector(cat, value, sec) { rosterToggleSector(cat, value, sec); }
+
+/* ---------- assignment flow ---------- */
+function resetForNewAssignment() {
+  ui.step = 2;
+  ui.sector = null;
+  ui.pendingMain = null;
+  ui.shift = null;
+  ui.briefer = "";
+  ui.sectorCommander = "";
+  ui.guards = [];
+  ui.form = { name: "", plate: "", radio: "", camera: "" };
+  ui.record = null;
+  render();
+}
+function addGuardToAssignment() {
+  var f = ui.form;
+  if (!f.name.trim() || !f.plate.trim() || !f.radio.trim() || !f.camera.trim()) return;
+  ui.guards.push({ id: uid(), name: f.name, plate: f.plate, radio: f.radio, camera: f.camera });
+  showToast(f.name + " נוסף לשיבוץ בהצלחה");
+  ui.form = { name: "", plate: "", radio: "", camera: "" };
+  render();
+}
+function removeGuardFromAssignment(id) {
+  ui.guards = ui.guards.filter(function (g) { return g.id !== id; });
+  render();
+}
+function finishAssignment() {
+  if (ui.guards.length === 0) return;
+  requirePin(function (pin) {
+    var rec = {
+      kabat: ui.selectedKabat, sector: ui.sector, shift: ui.shift, briefer: ui.briefer,
+      sectorCommander: ui.sectorCommander, guards: ui.guards, timestamp: Date.now()
+    };
+    ui.record = rec;
+    ui.step = 6;
+    state.history = [rec].concat(state.history);
+    render();
+    pending.shifts++;
+    supaRpc("rpc_finish_shift", {
+      p_pin: pin, p_kabat: rec.kabat, p_sector: rec.sector, p_shift: rec.shift,
+      p_briefer: rec.briefer, p_sector_commander: rec.sectorCommander, p_guards: rec.guards
+    }).then(function (row) {
+      if (row) {
+        rec.id = row.id;
+        rec.timestamp = new Date(row.created_at).getTime();
+        render();
+      }
+    }).catch(function (err) {
+      if (err && err.isPinError) {
+        setStoredPin(null);
+        ui.persistWarning = "קוד הגישה שגוי או פג תוקף — הדוח מוצג כאן אך לא נשמר במאגר המשותף. יש לנעול ולפתוח מחדש עם הקוד הנכון.";
+      } else {
+        ui.persistWarning = "שמירת הדוח בשרת נכשלה — הדוח מוצג כאן אך לא נשמר במאגר המשותף.";
+      }
+      render();
+    }).then(function () { pending.shifts--; }, function () { pending.shifts--; });
+  });
+}
+
+/* ---------- render: pieces ---------- */
+function renderHeader() {
+  return '<div class="eyebrow">מערכת ניהול כוח אדם · קב"טים</div>' +
+    '<h1 class="title">לוח בקרת משמרות</h1>' +
+    '<div class="date-display">📅 ' + esc(formatDate(Date.now())) + (ui.selectedKabat ? ' · 👤 ' + esc(ui.selectedKabat) : "") + "</div>" +
+    (ui.persistWarning ? '<div class="conn-note conn-warn"><span class="conn-dot"></span>' + esc(ui.persistWarning) + "</div>" : "");
+}
+function renderManageToggle() {
+  var locked = !getStoredPin();
+  return '<div class="manage-toggle-row">' +
+    '<button class="history-toggle manage-toggle" data-act="toggle-manage">' +
+    ICONS.settings + "ניהול רשימות (מאבטחים, רכבים, קשר, מצלמות)" + ICONS.chevronDown + "</button>" +
+    (locked ? "" : '<button class="lock-btn" data-act="lock-again">🔒 נעל מחדש</button>') +
+    "</div>";
+}
+function renderPinOverlay() {
+  return '<div class="pin-overlay">' +
+    '<div class="pin-box">' +
+    '<div class="pin-title">🔒 קוד גישה לעריכה</div>' +
+    '<div class="pin-sub">כדי להוסיף/למחוק פריטים ברשימות או לשמור שיבוץ, יש להזין את קוד הגישה המשותף לקב"טים.</div>' +
+    '<input class="input" type="tel" inputmode="numeric" id="pin-input" placeholder="קוד גישה" autocomplete="off" data-enter-act="submit-pin">' +
+    (ui.pinError ? '<div class="field-hint">' + esc(ui.pinError) + "</div>" : "") +
+    '<div class="actions-row">' +
+    '<button class="btn-primary" data-act="submit-pin"' + (ui.pinChecking ? " disabled" : "") + ">" + (ui.pinChecking ? "בודק…" : "אישור") + "</button>" +
+    '<button class="btn-secondary" data-act="cancel-pin">ביטול</button>' +
+    "</div></div></div>";
+}
+function renderSectorTags(current, onCat, onValue) {
+  return '<div class="sector-tags">' + TOP_SECTORS.map(function (sec) {
+    var active = current.indexOf(sec) !== -1;
+    return '<button class="sector-tag' + (active ? " sector-tag-active" : "") + '" data-act="toggle-sector" data-cat="' + esc(onCat) + '" data-value="' + esc(onValue) + '" data-sector="' + esc(sec) + '">' + esc(sec) + "</button>";
+  }).join("") + "</div>";
+}
+function renderManagePanel() {
+  var guardsHtml = '<div class="panel manage-col manage-col-guards"><h3>' + CATEGORY_LABELS.guards + "</h3>" +
+    '<div class="manage-add-row"><input class="input name-input" id="new-guard-name" placeholder="שם מאבטח חדש..." data-enter-act="add-guard-roster">' +
+    '<button class="btn-icon-add" data-act="add-guard-roster">' + ICONS.plus + "</button></div>" +
+    '<div class="manage-list">' +
+    (state.rosters.guards.length === 0 ? '<div class="h-meta">הרשימה ריקה</div>' :
+      state.rosters.guards.map(function (g) {
+        return '<div class="guard-manage-item"><div class="guard-manage-top"><span class="g-name">' + esc(g.name) + '</span>' +
+          '<button class="icon-btn" data-act="remove-guard-roster" data-name="' + esc(g.name) + '">' + ICONS.trash + "</button></div>" +
+          renderSectorTags(g.sectors, "guards", g.name) + "</div>";
+      }).join("")) + "</div></div>";
+
+  var vehiclesHtml = '<div class="panel manage-col manage-col-guards"><h3>' + CATEGORY_LABELS.vehicles + "</h3>" +
+    '<div class="manage-add-row"><input class="input" id="new-vehicle-plate" placeholder="מספר רישוי חדש..." data-enter-act="add-vehicle-roster">' +
+    '<button class="btn-icon-add" data-act="add-vehicle-roster">' + ICONS.plus + "</button></div>" +
+    '<div class="manage-list">' +
+    (state.rosters.vehicles.length === 0 ? '<div class="h-meta">הרשימה ריקה</div>' :
+      state.rosters.vehicles.map(function (v) {
+        return '<div class="guard-manage-item"><div class="guard-manage-top"><span class="g-name" style="font-family:\'IBM Plex Mono\',monospace">' + esc(v.plate) + '</span>' +
+          '<button class="icon-btn" data-act="remove-vehicle-roster" data-plate="' + esc(v.plate) + '">' + ICONS.trash + "</button></div>" +
+          renderSectorTags(v.sectors, "vehicles", v.plate) + "</div>";
+      }).join("")) + "</div></div>";
+
+  var taggedHtml = TAGGED_CATS.map(function (cat) {
+    var mono = TAGGED_MONO[cat];
+    return '<div class="panel manage-col manage-col-guards"><h3>' + CATEGORY_LABELS[cat] + "</h3>" +
+      '<div class="manage-add-row"><input class="input' + (mono ? "" : " name-input") + '" id="new-' + cat + '" placeholder="' + esc(TAGGED_PLACEHOLDERS[cat]) + '" data-enter-act="add-tagged" data-cat="' + cat + '">' +
+      '<button class="btn-icon-add" data-act="add-tagged" data-cat="' + cat + '">' + ICONS.plus + "</button></div>" +
+      '<div class="manage-list">' +
+      (state.rosters[cat].length === 0 ? '<div class="h-meta">הרשימה ריקה</div>' :
+        state.rosters[cat].map(function (item) {
+          return '<div class="guard-manage-item"><div class="guard-manage-top"><span class="g-name"' + (mono ? ' style="font-family:\'IBM Plex Mono\',monospace"' : "") + ">" + esc(item.value) + "</span>" +
+            '<button class="icon-btn" data-act="remove-tagged" data-cat="' + cat + '" data-value="' + esc(item.value) + '">' + ICONS.trash + "</button></div>" +
+            renderSectorTags(item.sectors, cat, item.value) + "</div>";
+        }).join("")) + "</div></div>";
+  }).join("");
+
+  return '<div class="manage-grid">' + guardsHtml + vehiclesHtml + taggedHtml + "</div>";
+}
+function renderConsoleStrip() {
+  return '<div class="console-strip">' + STEPS.map(function (s, idx) {
+    var cls = "segment" + (ui.step === idx + 1 ? " active" : "") + (ui.step > idx + 1 ? " done" : "");
+    return '<div class="' + cls + '" data-act="jump-to" data-idx="' + idx + '"><div class="dot"></div><div class="seg-label">' + esc(s.label) + "</div></div>";
+  }).join("") + "</div>";
+}
+function renderStep1() {
+  var warn = (ui.sector || ui.shift || ui.guards.length > 0) ?
+    '<div class="warn-note" style="margin-top:-8px;margin-bottom:14px">שים לב: החלפת קב"ט תנקה את כל הבחירות שכבר בוצעו במשמרת הנוכחית.</div>' : "";
+  var empty = state.rosters.kabats.length === 0 ? '<div class="field-hint">אין קב"טים ברשימה — הוסף ב"ניהול רשימות" למעלה</div>' : "";
+  var btns = state.rosters.kabats.map(function (k) {
+    return '<button class="choice-btn' + (ui.selectedKabat === k.value ? " choice-btn-selected" : "") + '" data-act="pick-kabat" data-value="' + esc(k.value) + '">' + esc(k.value) + "</button>";
+  }).join("");
+  return '<div class="panel"><h2>בחר קב"ט</h2>' + warn + empty + '<div class="grid-6">' + btns + "</div></div>";
+}
+function renderStep2() {
+  var warn = (ui.guards.length > 0 || ui.briefer || ui.sectorCommander) ?
+    '<div class="warn-note" style="margin-top:-8px;margin-bottom:14px">שים לב: שינוי גזרה ינקה את בחירת המתדרך/אחמ"ש' + (ui.guards.length > 0 ? " ואת " + ui.guards.length + " השיבוצים" : "") + " שכבר בוצעו במשמרת הנוכחית.</div>" : "";
+  var vis = visibleSectorStructure();
+  var empty = vis.length === 0 ? '<div class="field-hint">אין גזרות המשויכות לקב"ט זה — הוסף שיוך ב"ניהול רשימות" למעלה</div>' : "";
+  var btns = vis.map(function (s) {
+    return '<button class="choice-btn' + (ui.pendingMain === s.name ? " choice-btn-selected" : "") + '" data-act="' + (s.subSectors ? "pick-main-sector" : "pick-leaf-sector") + '" data-value="' + esc(s.name) + '">' + esc(s.name) + "</button>";
+  }).join("");
+  var subPanel = "";
+  if (ui.pendingMain) {
+    var mainDef = SECTOR_STRUCTURE.filter(function (s) { return s.name === ui.pendingMain; })[0];
+    var subBtns = mainDef.subSectors.map(function (sub) {
+      return '<button class="choice-btn" data-act="pick-sub-sector" data-value="' + esc(sub) + '">' + esc(sub) + "</button>";
+    }).join("");
+    subPanel = '<h2 style="margin-top:18px">בחר תת-גזרה — ' + esc(ui.pendingMain) + '</h2><div class="grid-6">' + subBtns + '</div>' +
+      '<div class="actions-row"><button class="btn-secondary" data-act="clear-pending-main">חזרה לבחירת גזרה</button></div>';
+  }
+  var backRow = !ui.pendingMain ? '<div class="actions-row"><button class="btn-secondary" data-act="change-kabat">החלף קב"ט</button></div>' : "";
+  return '<div class="panel"><h2>בחר גזרה — ' + esc(ui.selectedKabat) + "</h2>" + warn + empty + '<div class="grid-6">' + btns + "</div>" + subPanel + backRow + "</div>";
+}
+function renderStep3() {
+  var btns = SHIFTS.map(function (s) {
+    return '<button class="choice-btn" data-act="pick-shift" data-value="' + esc(s) + '">' + esc(s) + "</button>";
+  }).join("");
+  return '<div class="panel"><h2>בחר משמרת — ' + esc(ui.sector) + '</h2><div class="grid-6">' + btns + '</div>' +
+    '<div class="actions-row"><button class="btn-secondary" data-act="back-step2">חזרה</button></div></div>';
+}
+function renderStep4() {
+  var briefers = state.rosters.briefers.filter(function (b) { return tagsMatchSector(b.sectors, ui.sector); });
+  var commanders = state.rosters.commanders.filter(function (c) { return tagsMatchSector(c.sectors, ui.sector); });
+  var brieferOpts = '<option value="">בחר מתדרך...</option>' + briefers.map(function (b) {
+    return '<option value="' + esc(b.value) + '"' + (ui.briefer === b.value ? " selected" : "") + ">" + esc(b.value) + "</option>";
+  }).join("");
+  var commanderOpts = '<option value="">בחר אחמ"ש גזרתי...</option>' + commanders.map(function (c) {
+    return '<option value="' + esc(c.value) + '"' + (ui.sectorCommander === c.value ? " selected" : "") + ">" + esc(c.value) + "</option>";
+  }).join("");
+  return '<div class="panel"><h2>אחראי משמרת — ' + esc(ui.sector) + " · " + esc(ui.shift) + '</h2>' +
+    '<div class="field-row"><div class="field-label">' + ICONS.users + ' מתדרך *</div>' +
+    '<select class="input name-input' + (!ui.briefer ? " input-empty" : "") + '" data-bind="briefer">' + brieferOpts + "</select>" +
+    (briefers.length === 0 ? '<div class="field-hint">אין מתדרכים המשויכים לגזרה "' + esc(ui.sector) + '" — הוסף שיוך ב"ניהול רשימות" למעלה</div>' : "") + "</div>" +
+    '<div class="field-row"><div class="field-label">' + ICONS.checkCircle + ' אחמ"ש גזרתי *</div>' +
+    '<select class="input name-input' + (!ui.sectorCommander ? " input-empty" : "") + '" data-bind="sectorCommander">' + commanderOpts + "</select>" +
+    (commanders.length === 0 ? '<div class="field-hint">אין אחמ"שים המשויכים לגזרה "' + esc(ui.sector) + '" — הוסף שיוך ב"ניהול רשימות" למעלה</div>' : "") + "</div>" +
+    '<div class="actions-row"><button class="btn-secondary" data-act="back-step3">חזרה</button>' +
+    '<button class="btn-primary" data-act="continue-step5"' + (!ui.briefer || !ui.sectorCommander ? " disabled" : "") + ">המשך לשיבוץ מאבטחים</button></div></div>";
+}
+function renderStep5() {
+  var usedNames = ui.guards.map(function (g) { return g.name; });
+  var usedPlates = ui.guards.map(function (g) { return g.plate; });
+  var usedRadios = ui.guards.map(function (g) { return g.radio; });
+  var usedCameras = ui.guards.map(function (g) { return g.camera; });
+  var sectorGuards = state.rosters.guards.filter(function (g) { return tagsMatchSector(g.sectors, ui.sector); });
+  var availGuards = sectorGuards.filter(function (g) { return usedNames.indexOf(g.name) === -1; });
+  var sectorVehicles = state.rosters.vehicles.filter(function (v) { return tagsMatchSector(v.sectors, ui.sector); });
+  var availVehicles = sectorVehicles.filter(function (v) { return usedPlates.indexOf(v.plate) === -1; });
+  var sectorRadios = state.rosters.radios.filter(function (r) { return tagsMatchSector(r.sectors, ui.sector); });
+  var availRadios = sectorRadios.filter(function (r) { return usedRadios.indexOf(r.value) === -1; });
+  var sectorCameras = state.rosters.cameras.filter(function (c) { return tagsMatchSector(c.sectors, ui.sector); });
+  var availCameras = sectorCameras.filter(function (c) { return usedCameras.indexOf(c.value) === -1; });
+  var formComplete = ui.form.name.trim() && ui.form.plate.trim() && ui.form.radio.trim() && ui.form.camera.trim();
+
+  function selectField(label, iconHtml, bind, options, current, sectorList, availList, unitLabel) {
+    var opts = '<option value="">בחר...</option>' + options.map(function (o) {
+      var val = typeof o === "string" ? o : (o.name || o.plate || o.value);
+      return '<option value="' + esc(val) + '"' + (current === val ? " selected" : "") + ">" + esc(val) + "</option>";
+    }).join("");
+    var hint = "";
+    if (sectorList.length === 0) hint = '<div class="field-hint">אין ' + unitLabel + ' המשויכים לגזרה "' + esc(ui.sector) + '" — הוסף שיוך ב"ניהול רשימות" למעלה</div>';
+    else if (availList.length === 0) hint = '<div class="field-hint">כל ה' + unitLabel + ' המשויכים לגזרה זו כבר בשימוש במשמרת הנוכחית</div>';
+    return '<div class="field-row"><div class="field-label">' + iconHtml + " " + label + '</div><select class="input' + (bind === "name" ? " name-input" : "") + (!current ? " input-empty" : "") + '" data-bind="form.' + bind + '">' + opts + "</select>" + hint + "</div>";
+  }
+
+  var nameOpts = '<option value="">בחר מאבטח...</option>' + availGuards.map(function (g) {
+    return '<option value="' + esc(g.name) + '"' + (ui.form.name === g.name ? " selected" : "") + ">" + esc(g.name) + "</option>";
+  }).join("");
+  var nameHint = sectorGuards.length === 0 ? '<div class="field-hint">אין מאבטחים המשויכים לגזרה "' + esc(ui.sector) + '" — הוסף שיוך ב"ניהול רשימות" למעלה</div>' :
+    (availGuards.length === 0 ? '<div class="field-hint">כל המאבטחים המשויכים לגזרה זו כבר שובצו במשמרת הנוכחית</div>' : "");
+
+  var guardListHtml = ui.guards.length > 0 ? '<div class="guard-list">' + ui.guards.map(function (g) {
+    return '<div class="guard-row"><div><div class="g-name">' + esc(g.name) + '</div><div class="g-meta"><span>רכב ' + esc(g.plate) + '</span><span>קשר ' + esc(g.radio) + '</span><span>מצלמה ' + esc(g.camera) + '</span></div></div>' +
+      '<button class="icon-btn" data-act="remove-assign-guard" data-id="' + esc(g.id) + '">' + ICONS.trash + "</button></div>";
+  }).join("") + "</div>" : "";
+
+  return '<div class="panel"><h2>שיבוץ מאבטחים — ' + esc(ui.sector) + " · " + esc(ui.shift) + '</h2>' +
+    '<div class="field-row"><div class="field-label">' + ICONS.users + ' שם המאבטח *</div><select class="input name-input' + (!ui.form.name ? " input-empty" : "") + '" data-bind="form.name">' + nameOpts + "</select>" + nameHint + "</div>" +
+    selectField("מספר רישוי רכב *", ICONS.car, "plate", availVehicles.map(function (v) { return v.plate; }), ui.form.plate, sectorVehicles, availVehicles, "רכבים") +
+    selectField("מספר מכשיר קשר *", ICONS.radio, "radio", availRadios.map(function (r) { return r.value; }), ui.form.radio, sectorRadios, availRadios, "מכשירי קשר") +
+    selectField("מספר מצלמה *", ICONS.camera, "camera", availCameras.map(function (c) { return c.value; }), ui.form.camera, sectorCameras, availCameras, "מצלמות") +
+    '<button class="btn-primary" data-act="add-assign-guard"' + (!formComplete ? " disabled" : "") + '><span style="display:flex;align-items:center;gap:6px">' + ICONS.plus + " הוסף מאבטח לשיבוץ</span></button>" +
+    (!formComplete ? '<div class="field-hint">יש למלא את כל השדות (*) לפני ההוספה</div>' : "") +
+    guardListHtml +
+    '<div class="actions-row"><button class="btn-secondary" data-act="back-step4">חזרה</button>' +
+    '<button class="btn-primary" data-act="finish-assignment"' + (ui.guards.length === 0 ? " disabled" : "") + '>סיים שיבוץ והפק דוח (' + ui.guards.length + ")</button></div></div>";
+}
+function renderStep6() {
+  if (!ui.record) return "";
+  var text = buildReportText(ui.record);
+  return '<div class="panel"><h2>' + ICONS.checkCircle.replace("width=\"15\" height=\"15\"", "width=\"18\" height=\"18\"") + "דוח שיבוץ הופק</h2>" +
+    '<div class="report-block">' + esc(text) + "</div>" +
+    (ui.persistWarning ? '<div class="warn-note">הדוח נוצר אך לא נשמר בהיסטוריה המשותפת (' + esc(ui.persistWarning) + ")</div>" : "") +
+    '<div class="actions-row"><button class="btn-primary" data-act="copy-report"><span style="display:flex;align-items:center;gap:6px">' + ICONS.copy + " העתק להודעת וואטסאפ</span></button>" +
+    '<button class="btn-secondary" data-act="new-assignment">שיבוץ חדש</button></div></div>';
+}
+function renderStepPanel() {
+  if (ui.step === 1) return renderStep1();
+  if (ui.step === 2) return renderStep2();
+  if (ui.step === 3) return renderStep3();
+  if (ui.step === 4) return renderStep4();
+  if (ui.step === 5) return renderStep5();
+  if (ui.step === 6) return renderStep6();
+  return "";
+}
+function renderHistoryToggle() {
+  return '<button class="history-toggle' + (ui.historyOpen ? " open" : "") + '" data-act="toggle-history">' +
+    ICONS.history + "משמרות קודמות (" + state.history.length + ")" + ICONS.chevronDown + "</button>";
+}
+function renderHistoryPanel() {
+  if (state.history.length === 0) return '<div class="h-meta">אין עדיין משמרות שמורות.</div>';
+  var items = state.history.slice(0, 15).map(function (h) {
+    var expanded = ui.expandedHistoryTs === h.timestamp;
+    var body = expanded ? '<div class="report-block" style="margin-top:10px">' + esc(buildReportText(h)) + "</div>" +
+      '<div class="actions-row" style="margin-top:10px"><button class="btn-secondary" data-act="copy-history-item" data-ts="' + h.timestamp + '"><span style="display:flex;align-items:center;gap:6px">' + ICONS.copy + " העתק דוח זה</span></button></div>" : "";
+    return '<div class="history-item"><div class="h-top" style="cursor:pointer" data-act="toggle-history-item" data-ts="' + h.timestamp + '"><span>' + esc(h.kabat) + " · " + esc(h.sector) + " · " + esc(h.shift) + "</span><span>" + h.guards.length + ' מאבטחים</span></div>' +
+      '<div class="h-meta">' + esc(formatDate(h.timestamp)) + " · " + esc(formatTime(h.timestamp)) + "</div>" + body + "</div>";
+  }).join("");
+  return "<div>" + items + "</div>";
+}
+function renderApp() {
+  if (!ui.loaded) {
+    return '<div dir="rtl" lang="he" class="wrap"><div class="shell">' +
+      renderHeader() +
+      '<div class="panel" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:220px;text-align:center">' +
+      (ui.loadError
+        ? ('<div style="color:var(--danger)">' + esc(ui.loadError) + '</div><button class="btn-primary" data-act="retry-load">נסה שוב</button>')
+        : '<div style="color:var(--muted)">טוען נתונים מהשרת…</div>') +
+      "</div></div></div>";
+  }
+  return '<div dir="rtl" lang="he" class="wrap"><div class="shell">' +
+    renderHeader() + renderManageToggle() +
+    (ui.manageOpen ? renderManagePanel() : "") +
+    renderConsoleStrip() + renderStepPanel() +
+    renderHistoryToggle() + (ui.historyOpen ? renderHistoryPanel() : "") +
+    "</div>" + (ui.toast ? '<div class="toast">' + esc(ui.toast) + "</div>" : "") +
+    (ui.pinPromptOpen ? renderPinOverlay() : "") + "</div>";
+}
+
+var root = document.getElementById("root");
+function render() {
+  root.innerHTML = renderApp();
+}
+
+/* ---------- events ---------- */
+function getVal(id) {
+  var el = document.getElementById(id);
+  return el ? el.value : "";
+}
+function clearVal(id) {
+  var el = document.getElementById(id);
+  if (el) el.value = "";
+}
+root.addEventListener("click", function (e) {
+  var el = e.target.closest("[data-act]");
+  if (!el) return;
+  var act = el.getAttribute("data-act");
+  switch (act) {
+    case "retry-load": loadAll(); break;
+    case "toggle-manage": ui.manageOpen = !ui.manageOpen; render(); break;
+    case "lock-again": setStoredPin(null); showToast("המכשיר ננעל — יידרש קוד גישה בפעם הבאה"); render(); break;
+    case "submit-pin": submitPin(); break;
+    case "cancel-pin": cancelPinPrompt(); break;
+    case "toggle-history": ui.historyOpen = !ui.historyOpen; render(); break;
+    case "toggle-history-item": {
+      var ts = Number(el.getAttribute("data-ts"));
+      ui.expandedHistoryTs = ui.expandedHistoryTs === ts ? null : ts;
+      render();
+      break;
+    }
+    case "copy-history-item": {
+      var ts2 = Number(el.getAttribute("data-ts"));
+      var rec = state.history.filter(function (h) { return h.timestamp === ts2; })[0];
+      if (rec) handleCopy(buildReportText(rec));
+      break;
+    }
+    case "jump-to": {
+      var idx = Number(el.getAttribute("data-idx"));
+      if (idx + 1 < ui.step) { ui.step = idx + 1; render(); }
+      break;
+    }
+    case "pick-kabat": {
+      var kv = el.getAttribute("data-value");
+      ui.selectedKabat = kv; ui.sector = null; ui.pendingMain = null; ui.shift = null;
+      ui.briefer = ""; ui.sectorCommander = ""; ui.guards = []; ui.form = { name: "", plate: "", radio: "", camera: "" };
+      ui.step = 2; render();
+      break;
+    }
+    case "change-kabat": ui.step = 1; render(); break;
+    case "pick-main-sector": ui.pendingMain = el.getAttribute("data-value"); render(); break;
+    case "clear-pending-main": ui.pendingMain = null; render(); break;
+    case "pick-leaf-sector": {
+      ui.sector = el.getAttribute("data-value"); ui.pendingMain = null; ui.guards = [];
+      ui.form = { name: "", plate: "", radio: "", camera: "" }; ui.briefer = ""; ui.sectorCommander = "";
+      ui.step = 3; render();
+      break;
+    }
+    case "pick-sub-sector": {
+      ui.sector = ui.pendingMain + " - " + el.getAttribute("data-value"); ui.pendingMain = null; ui.guards = [];
+      ui.form = { name: "", plate: "", radio: "", camera: "" }; ui.briefer = ""; ui.sectorCommander = "";
+      ui.step = 3; render();
+      break;
+    }
+    case "back-step2": ui.step = 2; render(); break;
+    case "pick-shift": ui.shift = el.getAttribute("data-value"); ui.step = 4; render(); break;
+    case "back-step3": ui.step = 3; render(); break;
+    case "continue-step5": if (ui.briefer && ui.sectorCommander) { ui.step = 5; render(); } break;
+    case "back-step4": ui.step = 4; render(); break;
+    case "add-assign-guard": addGuardToAssignment(); break;
+    case "remove-assign-guard": removeGuardFromAssignment(el.getAttribute("data-id")); render(); break;
+    case "finish-assignment": finishAssignment(); break;
+    case "copy-report": if (ui.record) handleCopy(buildReportText(ui.record)); break;
+    case "new-assignment": resetForNewAssignment(); break;
+    case "add-guard-roster": addGuardToRoster(getVal("new-guard-name")); clearVal("new-guard-name"); break;
+    case "remove-guard-roster": removeGuardFromRoster(el.getAttribute("data-name")); break;
+    case "add-vehicle-roster": addVehicleToRoster(getVal("new-vehicle-plate")); clearVal("new-vehicle-plate"); break;
+    case "remove-vehicle-roster": removeVehicleFromRoster(el.getAttribute("data-plate")); break;
+    case "add-tagged": { var cat = el.getAttribute("data-cat"); addTaggedItem(cat, getVal("new-" + cat)); clearVal("new-" + cat); break; }
+    case "remove-tagged": removeTaggedItem(el.getAttribute("data-cat"), el.getAttribute("data-value")); break;
+    case "toggle-sector": {
+      var cat2 = el.getAttribute("data-cat"), val2 = el.getAttribute("data-value"), sec2 = el.getAttribute("data-sector");
+      if (cat2 === "guards") toggleGuardSector(val2, sec2);
+      else if (cat2 === "vehicles") toggleVehicleSector(val2, sec2);
+      else toggleTaggedItemSector(cat2, val2, sec2);
+      break;
+    }
+  }
+});
+root.addEventListener("keydown", function (e) {
+  if (e.key !== "Enter") return;
+  var el = e.target.closest("[data-enter-act]");
+  if (!el) return;
+  var act = el.getAttribute("data-enter-act");
+  if (act === "add-guard-roster") { addGuardToRoster(getVal("new-guard-name")); clearVal("new-guard-name"); }
+  else if (act === "add-vehicle-roster") { addVehicleToRoster(getVal("new-vehicle-plate")); clearVal("new-vehicle-plate"); }
+  else if (act === "add-tagged") { var cat = el.getAttribute("data-cat"); addTaggedItem(cat, getVal("new-" + cat)); clearVal("new-" + cat); }
+  else if (act === "submit-pin") { submitPin(); }
+});
+root.addEventListener("change", function (e) {
+  var el = e.target.closest("[data-bind]");
+  if (!el) return;
+  var bind = el.getAttribute("data-bind");
+  if (bind === "briefer") ui.briefer = el.value;
+  else if (bind === "sectorCommander") ui.sectorCommander = el.value;
+  else if (bind.indexOf("form.") === 0) ui.form[bind.slice(5)] = el.value;
+  render();
+});
+loadAll();
+setInterval(pollRefresh, 20000);
+document.addEventListener("visibilitychange", function () { if (!document.hidden) pollRefresh(); });
+})();
+</script>
+</body>
+</html>
