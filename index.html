@@ -139,6 +139,9 @@ html, body { margin: 0; padding: 0; background: #eaf3fb; }
   border-color: var(--amber);
   background: linear-gradient(180deg, rgba(25,118,201,0.14), rgba(25,118,201,0.03));
 }
+.hours-mode-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.choice-btn-compact { padding: 8px 12px; font-size: 13px; flex: 0 0 auto; }
+.shift-hours-hint { display: block; font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 2px; }
 .field-row { margin-bottom: 12px; }
 .field-label {
   display: flex;
@@ -470,7 +473,15 @@ var SECTOR_STRUCTURE = [
   { name: "סובב ירושלים", subSectors: ["ביתר עילית", "מודיעין עילית", "בית שמש"] }
 ];
 var TOP_SECTORS = SECTOR_STRUCTURE.map(function (s) { return s.name; });
-var SHIFTS = ["בוקר", "ערב", "לילה", "מתואמת", "מוצ\"ש", "מותאם אישית"];
+var SHIFTS = ["בוקר", "ערב", "לילה", "מוצ\"ש", "שישי לילה"];
+var SHIFT_HOURS = {
+  "בוקר": "07:00-16:00",
+  "ערב": "16:00-24:00",
+  "לילה": "22:00-04:00",
+  "מוצ\"ש": "21:00-04:00",
+  "שישי לילה": "22:30-04:00"
+};
+var COORDINATED_HOURS = "11:00-23:00";
 var STEPS = [
   { key: "kabat", label: "קב\"ט" },
   { key: "sector", label: "גזרה" },
@@ -545,6 +556,22 @@ function formatDateFromYMD(ymd) {
   var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
   return d.toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
+function formatDateShortFromYMD(ymd) {
+  if (!ymd) return "";
+  var parts = ymd.split("-");
+  return parts[2] + "." + parts[1] + "." + parts[0];
+}
+function formatDateShort(ts) {
+  var d = new Date(ts);
+  var day = String(d.getDate()).padStart(2, "0");
+  var month = String(d.getMonth() + 1).padStart(2, "0");
+  return day + "." + month + "." + d.getFullYear();
+}
+function computeGuardHours(mode, customStart, customEnd, shift) {
+  if (mode === "coordinated") return COORDINATED_HOURS;
+  if (mode === "custom") return (customStart && customEnd) ? (customStart + "-" + customEnd) : "";
+  return SHIFT_HOURS[shift] || "";
+}
 function buildHalfHourOptions() {
   var out = [];
   for (var h = 0; h < 24; h++) {
@@ -565,8 +592,9 @@ function buildReportText(record) {
   lines.push('🎖️ אחמ"ש גזרתי: ' + record.sectorCommander);
   lines.push("");
   lines.push("👮 מאבטחים משובצים:");
+  var guardDateStr = record.shiftDate ? formatDateShortFromYMD(record.shiftDate) : formatDateShort(record.timestamp);
   record.guards.forEach(function (g, i) {
-    lines.push((i + 1) + ". " + g.name + " | רכב: " + g.plate + " | קשר: " + g.radio + " | מצלמה: " + g.camera);
+    lines.push((i + 1) + ". " + guardDateStr + " | " + g.name + " | שעות: " + (g.hours || "-") + " | רכב: " + g.plate + " | קשר: " + g.radio + " | מצלמה: " + g.camera);
   });
   lines.push("");
   lines.push('סה"כ מאבטחים: ' + record.guards.length);
@@ -590,13 +618,10 @@ var ui = {
   shift: null,
   shiftDate: todayYMD(),
   dateEditing: false,
-  customPending: false,
-  customStart: "",
-  customEnd: "",
   briefer: "",
   sectorCommander: "",
   guards: [],
-  form: { name: "", plate: "", radio: "", camera: "" },
+  form: { name: "", plate: "", radio: "", camera: "", hoursMode: "standard", hoursCustomStart: "", hoursCustomEnd: "" },
   record: null,
   toast: null,
   historyOpen: false,
@@ -887,22 +912,21 @@ function resetForNewAssignment() {
   ui.sector = null;
   ui.pendingMain = null;
   ui.shift = null;
-  ui.customPending = false;
-  ui.customStart = "";
-  ui.customEnd = "";
   ui.briefer = "";
   ui.sectorCommander = "";
   ui.guards = [];
-  ui.form = { name: "", plate: "", radio: "", camera: "" };
+  ui.form = { name: "", plate: "", radio: "", camera: "", hoursMode: "standard", hoursCustomStart: "", hoursCustomEnd: "" };
   ui.record = null;
   render();
 }
 function addGuardToAssignment() {
   var f = ui.form;
   if (!f.name.trim() || !f.plate.trim() || !f.radio.trim() || !f.camera.trim()) return;
-  ui.guards.push({ id: uid(), name: f.name, plate: f.plate, radio: f.radio, camera: f.camera });
+  if (f.hoursMode === "custom" && (!f.hoursCustomStart || !f.hoursCustomEnd)) return;
+  var hours = computeGuardHours(f.hoursMode, f.hoursCustomStart, f.hoursCustomEnd, ui.shift);
+  ui.guards.push({ id: uid(), name: f.name, plate: f.plate, radio: f.radio, camera: f.camera, hours: hours });
   showToast(f.name + " נוסף לשיבוץ בהצלחה");
-  ui.form = { name: "", plate: "", radio: "", camera: "" };
+  ui.form = { name: "", plate: "", radio: "", camera: "", hoursMode: "standard", hoursCustomStart: "", hoursCustomEnd: "" };
   render();
 }
 function removeGuardFromAssignment(id) {
@@ -943,9 +967,10 @@ function finishAssignment() {
 }
 function saveAndSend() {
   var f = ui.form;
-  if (f.name.trim() && f.plate.trim() && f.radio.trim() && f.camera.trim()) {
-    ui.guards.push({ id: uid(), name: f.name, plate: f.plate, radio: f.radio, camera: f.camera });
-    ui.form = { name: "", plate: "", radio: "", camera: "" };
+  if (f.name.trim() && f.plate.trim() && f.radio.trim() && f.camera.trim() && (f.hoursMode !== "custom" || (f.hoursCustomStart && f.hoursCustomEnd))) {
+    var hours = computeGuardHours(f.hoursMode, f.hoursCustomStart, f.hoursCustomEnd, ui.shift);
+    ui.guards.push({ id: uid(), name: f.name, plate: f.plate, radio: f.radio, camera: f.camera, hours: hours });
+    ui.form = { name: "", plate: "", radio: "", camera: "", hoursMode: "standard", hoursCustomStart: "", hoursCustomEnd: "" };
   }
   finishAssignment();
 }
@@ -1074,25 +1099,9 @@ function renderStep2() {
 }
 function renderStep3() {
   var btns = SHIFTS.map(function (s) {
-    var selected = ui.customPending && s === "מותאם אישית";
-    return '<button class="choice-btn' + (selected ? " choice-btn-selected" : "") + '" data-act="pick-shift" data-value="' + esc(s) + '">' + esc(s) + "</button>";
+    return '<button class="choice-btn' + (ui.shift === s ? " choice-btn-selected" : "") + '" data-act="pick-shift" data-value="' + esc(s) + '">' + esc(s) + ' <span class="shift-hours-hint">(' + esc(SHIFT_HOURS[s]) + ")</span></button>";
   }).join("");
-  var customPanel = "";
-  if (ui.customPending) {
-    var halfHours = buildHalfHourOptions();
-    var startOpts = '<option value="">בחר שעה...</option>' + halfHours.map(function (t) {
-      return '<option value="' + t + '"' + (ui.customStart === t ? " selected" : "") + ">" + t + "</option>";
-    }).join("");
-    var endOpts = '<option value="">בחר שעה...</option>' + halfHours.map(function (t) {
-      return '<option value="' + t + '"' + (ui.customEnd === t ? " selected" : "") + ">" + t + "</option>";
-    }).join("");
-    customPanel = '<div class="panel-inset">' +
-      '<div class="field-row"><div class="field-label">שעת תחילת משמרת *</div><select class="input' + (!ui.customStart ? " input-empty" : "") + '" data-bind="customStart">' + startOpts + "</select></div>" +
-      '<div class="field-row"><div class="field-label">שעת סיום משמרת *</div><select class="input' + (!ui.customEnd ? " input-empty" : "") + '" data-bind="customEnd">' + endOpts + "</select></div>" +
-      '<div class="actions-row"><button class="btn-secondary" data-act="cancel-custom-shift">ביטול</button>' +
-      '<button class="btn-primary" data-act="confirm-custom-shift"' + (!ui.customStart || !ui.customEnd ? " disabled" : "") + ">אישור שעות</button></div></div>";
-  }
-  return '<div class="panel"><h2>בחר משמרת — ' + esc(ui.sector) + '</h2><div class="grid-6">' + btns + '</div>' + customPanel +
+  return '<div class="panel"><h2>בחר משמרת — ' + esc(ui.sector) + '</h2><div class="grid-6">' + btns + '</div>' +
     '<div class="actions-row"><button class="btn-secondary" data-act="back-step2">חזרה</button></div></div>';
 }
 function renderStep4() {
@@ -1127,7 +1136,28 @@ function renderStep5() {
   var availRadios = sectorRadios.filter(function (r) { return usedRadios.indexOf(r.value) === -1; });
   var sectorCameras = state.rosters.cameras.filter(function (c) { return tagsMatchSector(c.sectors, ui.sector); });
   var availCameras = sectorCameras.filter(function (c) { return usedCameras.indexOf(c.value) === -1; });
-  var formComplete = ui.form.name.trim() && ui.form.plate.trim() && ui.form.radio.trim() && ui.form.camera.trim();
+  var halfHours = buildHalfHourOptions();
+  var hoursComplete = ui.form.hoursMode !== "custom" || (ui.form.hoursCustomStart && ui.form.hoursCustomEnd);
+  var formComplete = ui.form.name.trim() && ui.form.plate.trim() && ui.form.radio.trim() && ui.form.camera.trim() && hoursComplete;
+
+  var hoursCustomPanel = "";
+  if (ui.form.hoursMode === "custom") {
+    var hStartOpts = '<option value="">בחר שעה...</option>' + halfHours.map(function (t) {
+      return '<option value="' + t + '"' + (ui.form.hoursCustomStart === t ? " selected" : "") + ">" + t + "</option>";
+    }).join("");
+    var hEndOpts = '<option value="">בחר שעה...</option>' + halfHours.map(function (t) {
+      return '<option value="' + t + '"' + (ui.form.hoursCustomEnd === t ? " selected" : "") + ">" + t + "</option>";
+    }).join("");
+    hoursCustomPanel = '<div class="panel-inset">' +
+      '<div class="field-row"><div class="field-label">שעת התחלה *</div><select class="input' + (!ui.form.hoursCustomStart ? " input-empty" : "") + '" data-bind="form.hoursCustomStart">' + hStartOpts + "</select></div>" +
+      '<div class="field-row"><div class="field-label">שעת סיום *</div><select class="input' + (!ui.form.hoursCustomEnd ? " input-empty" : "") + '" data-bind="form.hoursCustomEnd">' + hEndOpts + "</select></div></div>";
+  }
+  var hoursFieldHtml = '<div class="field-row"><div class="field-label">🕐 שעות עבודה</div>' +
+    '<div class="hours-mode-row">' +
+    '<button type="button" class="choice-btn choice-btn-compact' + (ui.form.hoursMode === "standard" ? " choice-btn-selected" : "") + '" data-act="set-hours-mode" data-value="standard">סטנדרטי (' + esc(SHIFT_HOURS[ui.shift] || "") + ")</button>" +
+    '<button type="button" class="choice-btn choice-btn-compact' + (ui.form.hoursMode === "coordinated" ? " choice-btn-selected" : "") + '" data-act="set-hours-mode" data-value="coordinated">מתואמת (' + COORDINATED_HOURS + ")</button>" +
+    '<button type="button" class="choice-btn choice-btn-compact' + (ui.form.hoursMode === "custom" ? " choice-btn-selected" : "") + '" data-act="set-hours-mode" data-value="custom">מותאם אישית</button>' +
+    "</div>" + hoursCustomPanel + "</div>";
 
   function selectField(label, iconHtml, bind, options, current, sectorList, availList, unitLabel) {
     var opts = '<option value="">בחר...</option>' + options.map(function (o) {
@@ -1147,12 +1177,13 @@ function renderStep5() {
     (availGuards.length === 0 ? '<div class="field-hint">כל המאבטחים המשויכים לגזרה זו כבר שובצו במשמרת הנוכחית</div>' : "");
 
   var guardListHtml = ui.guards.length > 0 ? '<div class="guard-list">' + ui.guards.map(function (g) {
-    return '<div class="guard-row"><div><div class="g-name">' + esc(g.name) + '</div><div class="g-meta"><span>רכב ' + esc(g.plate) + '</span><span>קשר ' + esc(g.radio) + '</span><span>מצלמה ' + esc(g.camera) + '</span></div></div>' +
+    return '<div class="guard-row"><div><div class="g-name">' + esc(g.name) + '</div><div class="g-meta"><span>שעות ' + esc(g.hours || "-") + '</span><span>רכב ' + esc(g.plate) + '</span><span>קשר ' + esc(g.radio) + '</span><span>מצלמה ' + esc(g.camera) + '</span></div></div>' +
       '<button class="icon-btn" data-act="remove-assign-guard" data-id="' + esc(g.id) + '">' + ICONS.trash + "</button></div>";
   }).join("") + "</div>" : "";
 
   return '<div class="panel"><h2>שיבוץ מאבטחים — ' + esc(ui.sector) + " · " + esc(ui.shift) + '</h2>' +
     '<div class="field-row"><div class="field-label">' + ICONS.users + ' שם המאבטח *</div><select class="input name-input' + (!ui.form.name ? " input-empty" : "") + '" data-bind="form.name">' + nameOpts + "</select>" + nameHint + "</div>" +
+    hoursFieldHtml +
     selectField("מספר רישוי רכב *", ICONS.car, "plate", availVehicles.map(function (v) { return v.plate; }), ui.form.plate, sectorVehicles, availVehicles, "רכבים") +
     selectField("מספר מכשיר קשר *", ICONS.radio, "radio", availRadios.map(function (r) { return r.value; }), ui.form.radio, sectorRadios, availRadios, "מכשירי קשר") +
     selectField("מספר מצלמה *", ICONS.camera, "camera", availCameras.map(function (c) { return c.value; }), ui.form.camera, sectorCameras, availCameras, "מצלמות") +
@@ -1261,8 +1292,7 @@ root.addEventListener("click", function (e) {
     case "pick-kabat": {
       var kv = el.getAttribute("data-value");
       ui.selectedKabat = kv; ui.sector = null; ui.pendingMain = null; ui.shift = null;
-      ui.customPending = false; ui.customStart = ""; ui.customEnd = "";
-      ui.briefer = ""; ui.sectorCommander = ""; ui.guards = []; ui.form = { name: "", plate: "", radio: "", camera: "" };
+      ui.briefer = ""; ui.sectorCommander = ""; ui.guards = []; ui.form = { name: "", plate: "", radio: "", camera: "", hoursMode: "standard", hoursCustomStart: "", hoursCustomEnd: "" };
       ui.step = 2; render();
       break;
     }
@@ -1271,34 +1301,30 @@ root.addEventListener("click", function (e) {
     case "clear-pending-main": ui.pendingMain = null; render(); break;
     case "pick-leaf-sector": {
       ui.sector = el.getAttribute("data-value"); ui.pendingMain = null; ui.guards = [];
-      ui.form = { name: "", plate: "", radio: "", camera: "" }; ui.briefer = ""; ui.sectorCommander = "";
-      ui.shift = null; ui.customPending = false; ui.customStart = ""; ui.customEnd = "";
+      ui.form = { name: "", plate: "", radio: "", camera: "", hoursMode: "standard", hoursCustomStart: "", hoursCustomEnd: "" }; ui.briefer = ""; ui.sectorCommander = "";
+      ui.shift = null;
       ui.step = 3; render();
       break;
     }
     case "pick-sub-sector": {
       ui.sector = ui.pendingMain + " - " + el.getAttribute("data-value"); ui.pendingMain = null; ui.guards = [];
-      ui.form = { name: "", plate: "", radio: "", camera: "" }; ui.briefer = ""; ui.sectorCommander = "";
-      ui.shift = null; ui.customPending = false; ui.customStart = ""; ui.customEnd = "";
+      ui.form = { name: "", plate: "", radio: "", camera: "", hoursMode: "standard", hoursCustomStart: "", hoursCustomEnd: "" }; ui.briefer = ""; ui.sectorCommander = "";
+      ui.shift = null;
       ui.step = 3; render();
       break;
     }
-    case "back-step2": ui.step = 2; ui.customPending = false; render(); break;
+    case "back-step2": ui.step = 2; render(); break;
     case "pick-shift": {
       var sv = el.getAttribute("data-value");
-      if (sv === "מותאם אישית") { ui.shift = sv; ui.customPending = true; render(); }
-      else { ui.shift = sv; ui.customPending = false; ui.step = 4; render(); }
+      ui.shift = sv; ui.step = 4; render();
       break;
     }
-    case "confirm-custom-shift": {
-      if (ui.customStart && ui.customEnd) {
-        ui.shift = "מותאם אישית (" + ui.customStart + "–" + ui.customEnd + ")";
-        ui.customPending = false;
-        ui.step = 4; render();
-      }
+    case "set-hours-mode": {
+      ui.form.hoursMode = el.getAttribute("data-value");
+      if (ui.form.hoursMode !== "custom") { ui.form.hoursCustomStart = ""; ui.form.hoursCustomEnd = ""; }
+      render();
       break;
     }
-    case "cancel-custom-shift": ui.shift = null; ui.customPending = false; ui.customStart = ""; ui.customEnd = ""; render(); break;
     case "open-date-picker": ui.dateEditing = true; render(); break;
     case "close-date-picker": ui.dateEditing = false; render(); break;
     case "save-and-send": saveAndSend(); break;
@@ -1342,8 +1368,6 @@ root.addEventListener("change", function (e) {
   if (bind === "briefer") ui.briefer = el.value;
   else if (bind === "sectorCommander") ui.sectorCommander = el.value;
   else if (bind === "shiftDate") { ui.shiftDate = el.value; ui.dateEditing = false; }
-  else if (bind === "customStart") ui.customStart = el.value;
-  else if (bind === "customEnd") ui.customEnd = el.value;
   else if (bind.indexOf("form.") === 0) ui.form[bind.slice(5)] = el.value;
   render();
 });
