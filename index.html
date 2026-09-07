@@ -593,9 +593,9 @@ function buildReportText(record) {
   lines.push("");
   lines.push("👮 מאבטחים משובצים:");
   var guardDateStr = record.shiftDate ? formatDateShortFromYMD(record.shiftDate) : formatDateShort(record.timestamp);
-  lines.push(["מס'", "תאריך", "שם", "שעות", "רכב", "קשר", "מצלמה"].join("\t"));
-  record.guards.forEach(function (g, i) {
-    lines.push([i + 1, guardDateStr, g.name, g.hours || "-", g.plate, g.radio, g.camera].join("\t"));
+  lines.push(["תאריך", "שם", "שעות", "רכב", "קשר", "מצלמה"].join("\t"));
+  record.guards.forEach(function (g) {
+    lines.push([guardDateStr, g.name, g.hours || "-", g.plate, g.radio, g.camera].join("\t"));
   });
   lines.push("");
   lines.push('סה"כ מאבטחים: ' + record.guards.length);
